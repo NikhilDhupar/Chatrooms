@@ -60,6 +60,7 @@ var personalRoomSchema = new mongoose.Schema({
 var chatSchema = new mongoose.Schema({
   user: { type: Schema.Types.ObjectId, ref: "users" },
   time: Date,
+  text: String,
 });
 
 var groupSchema = new mongoose.Schema({
@@ -73,6 +74,15 @@ var user = mongoose.model('users', userSchema);
 var personalRoom = mongoose.model('personalRooms', personalRoomSchema);
 var chat = mongoose.model('chats', chatSchema);
 var group = mongoose.model('groups', groupSchema);
+
+io.on('connection', function (socket) {
+  socket.on('createpersonalchatroom', function (room) {
+    socket.join(room);
+  });
+  socket.on('personal message', (msg) => {
+    io.in(msg.roomid).emit('personal message', msg.message);
+  })
+});
 
 app.get('/', function (req, res) {
   res.redirect('/index.html');
@@ -162,14 +172,19 @@ app.get('/user/allusers', function (req, res) {
     res.redirect('/index.html');
   } else {
     user.find({
-      "name": { $ne: req.session.name },
-      // "_id": req.session.iid,
-    })
-      .then(data => {
+      "name": req.session.name,
+      "_id": req.session.iid,
+    }).populate('friends', '_id')
+      .exec((err, data) => {
+        if (err) return err;
         if (data.length != 0) {
-          res.render('userlist', {
-            user: data,
-          });
+          user.find({
+            "_id": { $nin: data[0].friends }
+          }).then((data) => {
+            res.render('userlist', {
+              user: data,
+            });
+          })
         } else {
           res.redirect('/index.html');
         }
@@ -214,13 +229,40 @@ app.get('/user/myfriends', function (req, res) {
       .exec((err, data) => {
         if (err) return err;
         if (data.length != 0) {
-          console.log(data[0].friends);
           res.render('myfriends', {
             user: data[0].friends,
             myname: data[0].name,
           });
         } else {
           res.redirect('/index.html');
+        }
+      })
+  }
+});
+
+app.get('/mychats/:roomid', function (req, res) {
+  if (!req.session.islogin) {
+    res.redirect('/index.html');
+  } else {
+    personalRoom.find({
+      "_id": req.params.roomid
+    }).populate('users', 'name _id').populate('messages')
+      .exec((err, data) => {
+        if (err) return err;
+        if (data.length != 0) {
+          let displayname = '';
+          if (data[0].users[0].name == req.session.name) {
+            displayname = data[0].users[1].name;
+          } else {
+            displayname = data[0].users[0].name;
+          }
+          res.render('personalchat', {
+            displayname: displayname,
+            messages: data[0].messages,
+            roomid: req.params.roomid,
+          });
+        } else {
+          res.redirect('/home/users');
         }
       })
   }
