@@ -23,7 +23,11 @@
       <nav class="navbar navbar-expand navbar-dark bg-warning">
           <a class="navbar-brand" href="#"><%= displayname %></a>
       </nav>
-    <ul id="messages"></ul>
+    <ul id="messages">
+        <% for(var i=0; i< messages.length; i++) { %>
+          <li><%= messages[i].user %> : <%= messages[i].text %> </li>
+        <%}%>
+    </ul>
     <form action="" id="myForm">
       <input id="m" autocomplete="off" /><button>Send</button>
     </form>
@@ -45,18 +49,10 @@
        
         socket.on('personal message', function(msg){
           var node = document.createElement("li");
-          let text = '<%= myname %>: '
-          node.innerHTML = msg ;
-            document.getElementById("messages").appendChild(node)
+          node.innerHTML = msg.myname +': '+ msg.message ;
+          document.getElementById("messages").appendChild(node)
           window.scrollTo(0, document.body.scrollHeight);
         });
-
-        function appendmessage(msg , username ){
-          var node = document.createElement("li");
-          node.innerHTML = username +': ' + msg ;
-          document.getElementById("messages").appendChild(node);
-          window.scrollTo(0, document.body.scrollHeight);
-        }
       
     </script>
   </body>
@@ -65,5 +61,4 @@
 <script>
     console.log('<%= roomid %>');
     console.log('<%= displayname %>');
-    //console.log('<%= messages %>');
 </script>

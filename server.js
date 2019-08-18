@@ -80,7 +80,7 @@ io.on('connection', function (socket) {
     socket.join(room);
   });
   socket.on('personal message', (msg) => {
-    io.in(msg.roomid).emit('personal message', msg.message);
+    io.in(msg.roomid).emit('personal message', msg);
     let newchat = new chat({
       user: msg.myname,
       text: msg.message,
@@ -267,11 +267,8 @@ app.get('/mychats/:roomid', function (req, res) {
           } else {
             displayname = data[0].users[0].name;
           }
-          console.log("sending data to personalchats");
-          console.log(data[0].messages);
           res.render('personalchat', {
             displayname: displayname,
-            myid: req.session.iid,
             myname: req.session.name,
             messages: data[0].messages,
             roomid: req.params.roomid,
