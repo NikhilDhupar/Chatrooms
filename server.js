@@ -86,7 +86,7 @@ io.on('connection', function (socket) {
       text: msg.message,
     });
     newchat.save().then((data)=>{
-      personalRoom.update({
+      personalRoom.updateOne({
         "_id": msg.roomid,
       },{
         $addToSet: { "messages": data._id }
