@@ -1,7 +1,11 @@
 <!doctype html>
 <html>
   <head>
-    <title>Socket Connection</title>
+    <title>Chat Rooms</title>
+    <link rel="stylesheet" href="http://localhost:3000/bootstrap.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font: 13px Helvetica, Arial; }
@@ -15,6 +19,10 @@
     </style>
   </head>
   <body>
+      <%- include('header.ejs') %>
+      <nav class="navbar navbar-expand navbar-dark bg-warning">
+          <a class="navbar-brand" href="#"><%= displayname %></a>
+      </nav>
     <ul id="messages"></ul>
     <form action="" id="myForm">
       <input id="m" autocomplete="off" /><button>Send</button>
@@ -24,23 +32,31 @@
       
         var socket = io();
         socket.emit('createpersonalchatroom', '<%= roomid %>');
+
         document.getElementById("myForm").addEventListener("submit", (e)=>{
           socket.emit('personal message', {
             message: document.getElementById("m").value,
             roomid: '<%= roomid %>',
+            myname: '<%= myname %>',
           });
           document.getElementById("m").value = "";
           e.preventDefault();
         });
        
         socket.on('personal message', function(msg){
-          console.log('message received');
-          console.log(msg);
           var node = document.createElement("li");
+          let text = '<%= myname %>: '
           node.innerHTML = msg ;
             document.getElementById("messages").appendChild(node)
           window.scrollTo(0, document.body.scrollHeight);
         });
+
+        function appendmessage(msg , username ){
+          var node = document.createElement("li");
+          node.innerHTML = username +': ' + msg ;
+          document.getElementById("messages").appendChild(node);
+          window.scrollTo(0, document.body.scrollHeight);
+        }
       
     </script>
   </body>
@@ -49,5 +65,5 @@
 <script>
     console.log('<%= roomid %>');
     console.log('<%= displayname %>');
-    console.log('<%= messages %>');
+    //console.log('<%= messages %>');
 </script>

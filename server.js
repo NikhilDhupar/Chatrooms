@@ -58,7 +58,7 @@ var personalRoomSchema = new mongoose.Schema({
 });
 
 var chatSchema = new mongoose.Schema({
-  user: { type: Schema.Types.ObjectId, ref: "users" },
+  user: String,
   time: Date,
   text: String,
 });
@@ -81,6 +81,17 @@ io.on('connection', function (socket) {
   });
   socket.on('personal message', (msg) => {
     io.in(msg.roomid).emit('personal message', msg.message);
+    let newchat = new chat({
+      user: msg.myname,
+      text: msg.message,
+    });
+    newchat.save().then((data)=>{
+      personalRoom.update({
+        "_id": msg.roomid,
+      },{
+        $addToSet: { "messages": data._id }
+      }).exec();
+    })
   })
 });
 
@@ -246,7 +257,7 @@ app.get('/mychats/:roomid', function (req, res) {
   } else {
     personalRoom.find({
       "_id": req.params.roomid
-    }).populate('users', 'name _id').populate('messages')
+    }).populate('messages').populate('users', 'name _id')
       .exec((err, data) => {
         if (err) return err;
         if (data.length != 0) {
@@ -256,8 +267,12 @@ app.get('/mychats/:roomid', function (req, res) {
           } else {
             displayname = data[0].users[0].name;
           }
+          console.log("sending data to personalchats");
+          console.log(data[0].messages);
           res.render('personalchat', {
             displayname: displayname,
+            myid: req.session.iid,
+            myname: req.session.name,
             messages: data[0].messages,
             roomid: req.params.roomid,
           });
