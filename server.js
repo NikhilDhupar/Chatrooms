@@ -80,6 +80,9 @@ io.on('connection', function (socket) {
   socket.on('createpersonalchatroom', function (room) {
     socket.join(room);
   });
+  socket.on('creategroupchatroom', function (room) {
+    socket.join(room);
+  });
   socket.on('personal message', (msg) => {
     io.in(msg.roomid).emit('personal message', msg);
     let newchat = new chat({
@@ -93,7 +96,22 @@ io.on('connection', function (socket) {
         $addToSet: { "messages": data._id }
       }).exec();
     })
-  })
+  });
+  socket.on('group message', (msg) => {
+    io.in(msg.roomid).emit('group message', msg);
+    let newchat = new chat({
+      user: msg.myname,
+      text: msg.message,
+    });
+    newchat.save().then((data)=>{
+      group.updateOne({
+        "_id": msg.roomid,
+      },{
+        $addToSet: { "messages": data._id }
+      }).exec();
+    })
+  });
+
 });
 
 app.get('/', function (req, res) {
@@ -334,6 +352,29 @@ app.get('/mychats/:roomid', function (req, res) {
             myname: req.session.name,
             messages: data[0].messages,
             roomid: req.params.roomid,
+          });
+        } else {
+          res.redirect('/home/users');
+        }
+      })
+  }
+});
+
+app.get('/group/:groupid',function(req,res){
+  if (!req.session.islogin) {
+    res.redirect('/index.html');
+  } else {
+    group.find({
+      "_id": req.params.groupid
+    }).populate('messages').populate('users', 'name _id')
+      .exec((err, data) => {
+        if (err) return err;
+        if (data.length != 0) {
+          res.render('groupchat', {
+            displayname: data[0].name,
+            myname: req.session.name,
+            messages: data[0].messages,
+            roomid: req.params.groupid,
           });
         } else {
           res.redirect('/home/users');
