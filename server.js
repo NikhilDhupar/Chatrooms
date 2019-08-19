@@ -77,12 +77,15 @@ var chat = mongoose.model('chats', chatSchema);
 var group = mongoose.model('groups', groupSchema);
 
 io.on('connection', function (socket) {
-  socket.on('createpersonalchatroom', function (room) {
-    socket.join(room);
+  socket.on('createpersonalchatroom', function (msg) {
+    socket.join(msg.roomid);
+    io.in(msg.roomid).emit('online', msg);
   });
+
   socket.on('creategroupchatroom', function (room) {
     socket.join(room);
   });
+
   socket.on('personal message', (msg) => {
     io.in(msg.roomid).emit('personal message', msg);
     let newchat = new chat({
@@ -97,6 +100,7 @@ io.on('connection', function (socket) {
       }).exec();
     })
   });
+
   socket.on('group message', (msg) => {
     io.in(msg.roomid).emit('group message', msg);
     let newchat = new chat({
@@ -112,6 +116,13 @@ io.on('connection', function (socket) {
     })
   });
 
+  socket.on('typing',(msg)=>{
+    io.in(msg.roomid).emit('typing', msg);
+  })
+
+  socket.on('stop typing',(msg)=>{
+    io.in(msg.roomid).emit('stop typing', msg);
+  })
 });
 
 app.get('/', function (req, res) {
