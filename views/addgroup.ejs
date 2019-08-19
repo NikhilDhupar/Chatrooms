@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="/bootstrap.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+    <title>Chatrooms</title>
+</head>
+
+<body>
+    <%- include('header.ejs') %>
+    <div class="container" id="maindiv">
+        <div class="form-group">
+            <legend>Group Name</legend>
+            <input class="form-control" id="groupname" placeholder="Enter Group Name" required>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="submitgroup()">Create Group</button>
+        <fieldset>  
+            <div class="form-group">
+                <% for(var i=0; i< user.length; i++) { %>
+                <% if(myname != user[i].name ) {%>
+                <div class="custom-control custom-checkbox list-group-item" style="padding-left:35px">
+                    <input type="checkbox" class="custom-control-input" id="<%= user[i]._id %>"
+                        onclick="checkedelement('<%= user[i]._id %>','<%= user[i].name %>')">
+                    <label class="custom-control-label " for="<%= user[i]._id %>"><%= user[i].name %></label>
+                </div>
+                <% }} %>
+            </div>
+        </fieldset>
+    </div>
+</body>
+<script>
+    var users = [];
+    function checkedelement(id, name) {
+        if (document.getElementById(id).checked) {
+            users.push(id);
+        }
+        else
+        {
+            users.splice(id);
+        }
+    }
+
+    function submitgroup()
+    {
+        if(users.length<2)
+        {
+            alert('Error:select atleast 2 members to create a group');
+        }
+        else
+        {
+            var groupname = document.getElementById('groupname').value;
+            if(groupname=='')
+            {
+                alert("Enter Group Name");
+                return;
+            }
+            var request = new XMLHttpRequest();
+            request.open('post', "/user/creategroup");
+            request.setRequestHeader("Content-Type", "Application/JSON")
+            request.send(JSON.stringify({
+                'groupname':groupname,
+                "creatorname": '<%= myname %>',
+                "creatorid": '<%= myid %>',
+                members: users,
+            }));
+            request.addEventListener('load', function (){
+                window.location = '/user/mygroups';
+            });
+        }
+    }
+</script>
+
+</html>
