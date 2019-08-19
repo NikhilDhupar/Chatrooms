@@ -17,7 +17,7 @@
     <div class="container" style="background-color: #3f5169" id="maindiv">
         <div class="list-group">
                 <% for(var i=0; i< groups.length; i++) { %>
-            <a href='/group/startchat/<%= groups[i]._id %>' class="list-group-item list-group-item-action">
+            <a href='/group/<%= groups[i]._id %>' class="list-group-item list-group-item-action">
                     <%= groups[i].name %>
             </a>
             <% } %>
