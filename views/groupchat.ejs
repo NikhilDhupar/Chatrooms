@@ -25,7 +25,7 @@
       </nav>
     <ul id="messages">
         <% for(var i=0; i< messages.length; i++) { %>
-          <li><%= messages[i].user %> : <%= messages[i].text %> </li>
+          <li><%= messages[i].user %>: <%= messages[i].text %> </li>
         <%}%>
     </ul>
     <form action="" id="myForm">
@@ -53,12 +53,28 @@
           document.getElementById("messages").appendChild(node)
           window.scrollTo(0, document.body.scrollHeight);
         });
+
+        socket.on('typing',function(msg){
+          console.log(msg.typing);
+        })
+
+        socket.on('stop typing',function(msg){
+          console.log(msg.stoptyping);
+        })
+
+        $('input').focus(function() {
+          socket.emit('typing', {
+            typing: '<%= myname %> is typing..',
+            roomid: '<%= roomid %>',
+          });
+        });
+        $('input').blur(function() {
+          socket.emit('stop typing', {
+            stoptyping: '<%= myname %> stopped typing..',
+            roomid: '<%= roomid %>',
+          });
+        });
       
     </script>
   </body>
 </html>
-
-<script>
-    console.log('<%= roomid %>');
-    console.log('<%= displayname %>');
-</script>
