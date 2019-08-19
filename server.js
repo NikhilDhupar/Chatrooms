@@ -48,7 +48,7 @@ var userSchema = new mongoose.Schema({
   phno: String,
   password: String,
   personalRooms: [{ type: Schema.Types.ObjectId, ref: "personalRooms" }],
-  groups: [{ type: Schema.Types.ObjectId, ref: "groupRooms" }],
+  groups: [{ type: Schema.Types.ObjectId, ref: "groups" }],
   friends: [{ type: Schema.Types.ObjectId, ref: "users" }]
 });
 
@@ -65,6 +65,7 @@ var chatSchema = new mongoose.Schema({
 
 var groupSchema = new mongoose.Schema({
   creator: String,
+  name: String,
   admins: [{ type: Schema.Types.ObjectId, ref: "users" }],
   members: [{ type: Schema.Types.ObjectId, ref: "users" }],
   messages: [{ type: Schema.Types.ObjectId, ref: "chats" }],
@@ -249,6 +250,67 @@ app.get('/user/myfriends', function (req, res) {
         }
       })
   }
+});
+
+app.get('/user/mygroups',function(req,res){
+  if (!req.session.islogin) {
+    res.redirect('/index.html');
+  } else {
+    user.find({
+      "name": req.session.name,
+      "_id": req.session.iid,
+    }).populate('groups','name _id')
+      .exec((err, data) => {
+        if (err) return err;
+        if (data.length != 0) {
+          res.render('mygroups', {
+            groups: data[0].groups,
+          });
+        } else {
+          res.redirect('/index.html');
+        }
+      })
+  }
+});
+
+app.get('/user/creategroup',function(req,res){
+  if (!req.session.islogin) {
+    res.redirect('/index.html');
+  } else {
+    user.find({
+      "name": req.session.name,
+      "_id": req.session.iid,
+    }).populate('friends', 'name _id')
+      .exec((err, data) => {
+        if (err) return err;
+        if (data.length != 0) {
+          res.render('addgroup', {
+            user: data[0].friends,
+            myname: data[0].name,
+            myid: data[0].id,
+          });
+        } else {
+          res.redirect('/index.html');
+        }
+      })
+  }
+});
+
+app.post('/user/creategroup',function(req,res){
+  let newgroup = new group({
+    name: req.body.groupname,
+    creator: req.body.creatorname,
+    admins: [req.body.creatorid],
+    members: req.body.members,
+  });
+  newgroup.save().then((data)=>{
+    user.updateMany({
+      $or: [{_id: {$in: data.members}},{_id: {$in: data.admins}}],
+    }, {
+        $addToSet: { "groups": data._id }
+      }).exec();
+      res.send("done");
+  })
 });
 
 app.get('/mychats/:roomid', function (req, res) {
