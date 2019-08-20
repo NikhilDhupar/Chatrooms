@@ -38,6 +38,7 @@
         socket.emit('createpersonalchatroom', {
           roomid:'<%= roomid %>',
           myname: '<%= myname %>',
+          myid: '<%= myid %>',
         });
 
         document.getElementById("myForm").addEventListener("submit", (e)=>{
@@ -61,9 +62,27 @@
           console.log(msg.typing);
         })
 
-        socket.on('online',function(msg){
+        socket.emit('check online',{
+          roomid: '<%= roomid %>',
+            myname: '<%= myname %>',
+            myid: '<%= myid %>',
+        })
+
+        socket.on('logged in',function(msg){
           console.log(msg.myname + ' is online');
         })
+
+        socket.on('user disconnect',function(user){
+          console.log(user + ' disconnected');
+        })
+
+        socket.on('online',function(user){
+          console.log(user + ' is online');
+        })
+
+        socket.on('last seen',function(lastseen){
+          console.log('<%= displayname %> .lastseen '+ lastseen);
+        });
 
         socket.on('stop typing',function(msg){
           console.log(msg.stoptyping);
