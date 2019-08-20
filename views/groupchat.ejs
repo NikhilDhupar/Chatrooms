@@ -35,7 +35,11 @@
     <script>
       
         var socket = io();
-        socket.emit('creategroupchatroom', '<%= roomid %>');
+        socket.emit('creategroupchatroom', {
+          roomid:'<%= roomid %>',
+          myname:'<%= myname %>',
+          myid:'<%= myid %>',
+        });
 
         document.getElementById("myForm").addEventListener("submit", (e)=>{
           socket.emit('group message', {
