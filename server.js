@@ -90,6 +90,11 @@ io.on('connection', function (socket) {
     };
     io.in(msg.roomid).emit('logged in', msg);
 
+    updateuseronlinestatus(msg);
+  });
+
+  function updateuseronlinestatus(msg)
+  {
     user.updateOne({
       '_id': msg.myid,
       name: msg.myname,
@@ -97,20 +102,21 @@ io.on('connection', function (socket) {
         lastseen: new Date(),
         isonline: true,
       }).exec();
-  });
+  }
 
   socket.on('disconnect', function () {
     let obj = socketmapping[socket.id];
-    if (socketmapping[socket.id]) {
-      delete socketmapping[socket.id];
-      user.updateOne({
-        "_id": obj.userid,
-      }, {
-          isonline: false,
-          lastseen: new Date(),
-        }).exec();
+      let result = delete socketmapping[socket.id];
+      if(result)
+      {
+        user.updateOne({
+          "_id": obj.userid,
+        }, {
+            isonline: false,
+            lastseen: new Date(),
+          }).exec();
+      }
       io.to(obj.roomid).emit('user disconnect', obj.myname);
-    }
   });
 
   socket.on('check online', function (msg) {
@@ -141,8 +147,14 @@ io.on('connection', function (socket) {
     });
   });
 
-  socket.on('creategroupchatroom', function (room) {
-    socket.join(room);
+  socket.on('creategroupchatroom', function (msg) {
+    socket.join(msg.roomid);
+    socketmapping[socket.id] = {
+      userid: msg.myid,
+      roomid: msg.roomid,
+      myname: msg.myname,
+    }
+    updateuseronlinestatus(msg);
   });
 
   socket.on('personal message', (msg) => {
@@ -444,6 +456,7 @@ app.get('/group/:groupid', function (req, res) {
           res.render('groupchat', {
             displayname: data[0].name,
             myname: req.session.name,
+            myid: req.session.iid,
             messages: data[0].messages,
             roomid: req.params.groupid,
           });
