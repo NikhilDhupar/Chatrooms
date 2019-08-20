@@ -44,6 +44,7 @@ mongoose.connection.on('connected', (err) => {
 
 var userSchema = new mongoose.Schema({
   lastseen: Date,
+  isonline: Boolean,
   name: { unique: true, type: String },
   phno: String,
   password: String,
@@ -76,10 +77,68 @@ var personalRoom = mongoose.model('personalRooms', personalRoomSchema);
 var chat = mongoose.model('chats', chatSchema);
 var group = mongoose.model('groups', groupSchema);
 
+var socketmapping = {}
+
 io.on('connection', function (socket) {
   socket.on('createpersonalchatroom', function (msg) {
     socket.join(msg.roomid);
-    io.in(msg.roomid).emit('online', msg);
+
+    socketmapping[socket.id] = {
+      userid: msg.myid,
+      roomid: msg.roomid,
+      myname: msg.myname,
+    };
+    io.in(msg.roomid).emit('logged in', msg);
+
+    user.updateOne({
+      '_id': msg.myid,
+      name: msg.myname,
+    }, {
+        lastseen: new Date(),
+        isonline: true,
+      }).exec();
+  });
+
+  socket.on('disconnect', function () {
+    let obj = socketmapping[socket.id];
+    if (socketmapping[socket.id]) {
+      delete socketmapping[socket.id];
+      user.updateOne({
+        "_id": obj.userid,
+      }, {
+          isonline: false,
+          lastseen: new Date(),
+        }).exec();
+      io.to(obj.roomid).emit('user disconnect', obj.myname);
+    }
+  });
+
+  socket.on('check online', function (msg) {
+    personalRoom.find({
+      '_id': msg.roomid,
+    }).then((data) => {
+      if (msg.myid == data[0].users[0]) {
+        user.find({
+          "_id": data[0].users[1],
+        }).then((data) => {
+          if (data[0].isonline) {
+            io.in(msg.roomid).emit('online', data[0].name);
+          } else {
+            io.in(msg.roomid).emit('last seen', data[0].lastseen);
+          }
+        })
+      } else {
+        user.find({
+          "_id": data[0].users[0],
+        }).then((data) => {
+          if (data[0].isonline) {
+            io.in(msg.roomid).emit('online', data[0].name);
+          } else {
+            io.in(msg.roomid).emit('last seen', data[0].lastseen);
+          }
+        })
+      }
+    });
   });
 
   socket.on('creategroupchatroom', function (room) {
@@ -92,12 +151,12 @@ io.on('connection', function (socket) {
       user: msg.myname,
       text: msg.message,
     });
-    newchat.save().then((data)=>{
+    newchat.save().then((data) => {
       personalRoom.updateOne({
         "_id": msg.roomid,
-      },{
-        $addToSet: { "messages": data._id }
-      }).exec();
+      }, {
+          $addToSet: { "messages": data._id }
+        }).exec();
     })
   });
 
@@ -107,20 +166,20 @@ io.on('connection', function (socket) {
       user: msg.myname,
       text: msg.message,
     });
-    newchat.save().then((data)=>{
+    newchat.save().then((data) => {
       group.updateOne({
         "_id": msg.roomid,
-      },{
-        $addToSet: { "messages": data._id }
-      }).exec();
+      }, {
+          $addToSet: { "messages": data._id }
+        }).exec();
     })
   });
 
-  socket.on('typing',(msg)=>{
+  socket.on('typing', (msg) => {
     io.in(msg.roomid).emit('typing', msg);
   })
 
-  socket.on('stop typing',(msg)=>{
+  socket.on('stop typing', (msg) => {
     io.in(msg.roomid).emit('stop typing', msg);
   })
 });
@@ -281,14 +340,14 @@ app.get('/user/myfriends', function (req, res) {
   }
 });
 
-app.get('/user/mygroups',function(req,res){
+app.get('/user/mygroups', function (req, res) {
   if (!req.session.islogin) {
     res.redirect('/index.html');
   } else {
     user.find({
       "name": req.session.name,
       "_id": req.session.iid,
-    }).populate('groups','name _id')
+    }).populate('groups', 'name _id')
       .exec((err, data) => {
         if (err) return err;
         if (data.length != 0) {
@@ -302,7 +361,7 @@ app.get('/user/mygroups',function(req,res){
   }
 });
 
-app.get('/user/creategroup',function(req,res){
+app.get('/user/creategroup', function (req, res) {
   if (!req.session.islogin) {
     res.redirect('/index.html');
   } else {
@@ -325,20 +384,20 @@ app.get('/user/creategroup',function(req,res){
   }
 });
 
-app.post('/user/creategroup',function(req,res){
+app.post('/user/creategroup', function (req, res) {
   let newgroup = new group({
     name: req.body.groupname,
     creator: req.body.creatorname,
     admins: [req.body.creatorid],
     members: req.body.members,
   });
-  newgroup.save().then((data)=>{
+  newgroup.save().then((data) => {
     user.updateMany({
-      $or: [{_id: {$in: data.members}},{_id: {$in: data.admins}}],
+      $or: [{ _id: { $in: data.members } }, { _id: { $in: data.admins } }],
     }, {
         $addToSet: { "groups": data._id }
       }).exec();
-      res.send("done");
+    res.send("done");
   })
 });
 
@@ -361,6 +420,7 @@ app.get('/mychats/:roomid', function (req, res) {
           res.render('personalchat', {
             displayname: displayname,
             myname: req.session.name,
+            myid: req.session.iid,
             messages: data[0].messages,
             roomid: req.params.roomid,
           });
@@ -371,7 +431,7 @@ app.get('/mychats/:roomid', function (req, res) {
   }
 });
 
-app.get('/group/:groupid',function(req,res){
+app.get('/group/:groupid', function (req, res) {
   if (!req.session.islogin) {
     res.redirect('/index.html');
   } else {
