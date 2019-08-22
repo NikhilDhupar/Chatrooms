@@ -105,19 +105,19 @@ io.on('connection', function (socket) {
   }
 
   socket.on('disconnect', function () {
-    let obj = socketmapping[socket.id];
-      let result = delete socketmapping[socket.id];
-      if(result)
-      {
+    if(socketmapping[socket.id])
+    {
+      let obj = socketmapping[socket.id];
+      delete socketmapping[socket.id];
         user.updateOne({
           "_id": obj.userid,
         }, {
             isonline: false,
             lastseen: new Date(),
           }).exec();
-      }
       io.to(obj.roomid).emit('user disconnect', obj.myname);
-  });
+    }
+    });
 
   socket.on('check online', function (msg) {
     personalRoom.find({

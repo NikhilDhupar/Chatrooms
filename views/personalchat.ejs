@@ -12,21 +12,33 @@
       form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
       form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
       form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
       #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
       #messages { margin-bottom: 40px }
+      .mytexts{
+        background-color: rgb(253, 255, 158);
+        text-align: right;
+      }
+      .friendstexts{
+        text-align: left;
+        background-color: rgb(196, 243, 174);
+      }
     </style>
   </head>
   <body>
       <%- include('header.ejs') %>
       <nav class="navbar navbar-expand navbar-dark bg-warning">
           <a class="navbar-brand" href="#"><%= displayname %></a>
+          <span class="badge badge-success" style="display: none;" id="online">Online</span>
+          <span class="badge badge-success" style="display: none;" id="typing"></span>
+          <span class="badge badge-success" style="display: none;" id="lastseen"></span>
       </nav>
     <ul id="messages">
         <% for(var i=0; i< messages.length; i++) { %>
-          <li><%= messages[i].user %>: <%= messages[i].text %> </li>
-        <%}%>
+          <% if(messages[i].user == myname){ %>
+            <li class="mytexts"><%= messages[i].user %>: <%= messages[i].text %> </li>
+          <%}else{%>
+            <li class="friendstexts"><%= messages[i].user %>: <%= messages[i].text %> </li>
+        <%}}%>
     </ul>
     <form action="" id="myForm">
       <input id="m" autocomplete="off" /><button>Send</button>
@@ -60,6 +72,14 @@
 
         socket.on('typing',function(msg){
           console.log(msg.typing);
+          if(msg.typing == '<%= displayname %>')
+          {
+            document.getElementById('online').style.display = "none";
+            document.getElementById('lastseen').style.display = "none";
+            document.getElementById('typing').innerHTML = msg.typing + ' is typing..';
+            document.getElementById('typing').style.display = "block";
+          }
+
         })
 
         socket.emit('check online',{
@@ -70,33 +90,55 @@
 
         socket.on('logged in',function(msg){
           console.log(msg.myname + ' is online');
+          if(msg.myname != '<%= displayname %>')
+          {
+            document.getElementById('online').style.display = "block";
+          }
         })
 
         socket.on('user disconnect',function(user){
-          console.log(user + ' disconnected');
+          //console.log(user + ' disconnected');
+          document.getElementById('online').style.display = "none";
+          document.getElementById('lastseen').style.display = "block";
+          var d = new Date();
+          document.getElementById('lastseen').innerHTML = d;
         })
 
         socket.on('online',function(user){
           console.log(user + ' is online');
+          document.getElementById('online').style.display = "block";
+          document.getElementById('lastseen').style.display = "none"; 
         })
 
         socket.on('last seen',function(lastseen){
           console.log('<%= displayname %> .lastseen '+ lastseen);
+          document.getElementById('online').style.display = "none";
+          document.getElementById('lastseen').style.display = "block";
+          document.getElementById('lastseen').innerHTML = lastseen;
         });
 
         socket.on('stop typing',function(msg){
           console.log(msg.stoptyping);
+          if(msg.stoptyping == '<%= displayname %>')
+          {
+            socket.emit('check online',{
+            roomid: '<%= roomid %>',
+              myname: '<%= myname %>',
+              myid: '<%= myid %>',
+            });
+            document.getElementById('typing').style.display = "none";
+          }
         })
 
         $('input').focus(function() {
           socket.emit('typing', {
-            typing: '<%= myname %> is typing..',
+            typing: '<%= myname %>',
             roomid: '<%= roomid %>',
           });
         });
         $('input').blur(function() {
           socket.emit('stop typing', {
-            stoptyping: '<%= myname %> stopped typing..',
+            stoptyping: '<%= myname %>',
             roomid: '<%= roomid %>',
           });
         });
