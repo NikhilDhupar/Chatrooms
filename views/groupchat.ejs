@@ -9,10 +9,10 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages li { padding: 5px 10px; }
+      #myForm { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      #myForm input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #myForm button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages li { padding: 5px 10px; margin: 2px 0px;}
       #messages { margin-bottom: 40px }
       .mytexts{
         background-color: rgb(253, 255, 158);
@@ -28,6 +28,7 @@
       <%- include('header.ejs') %>
       <nav class="navbar navbar-expand navbar-dark bg-warning">
           <a class="navbar-brand" href="#"><%= displayname %></a>
+          <span class="badge badge-success" style="display: none;" id="typing"></span>
       </nav>
     <ul id="messages">
       <% for(var i=0; i< messages.length; i++) { %>
@@ -63,27 +64,37 @@
         socket.on('group message', function(msg){
           var node = document.createElement("li");
           node.innerHTML = msg.myname +': '+ msg.message ;
+          if(msg.myname != '<%= displayname %>')
+            node.classList.add('mytexts');
+          else
+            node.classList.add('friendstexts');
           document.getElementById("messages").appendChild(node)
           window.scrollTo(0, document.body.scrollHeight);
         });
 
         socket.on('typing',function(msg){
           console.log(msg.typing);
+          if(msg.typing != '<%= myname %>')
+          {
+            document.getElementById('typing').innerHTML = msg.typing + ' is typing..';
+            document.getElementById('typing').style.display = "block";
+          }
         })
 
         socket.on('stop typing',function(msg){
           console.log(msg.stoptyping);
+          document.getElementById('typing').style.display = "none";
         })
 
         $('input').focus(function() {
           socket.emit('typing', {
-            typing: '<%= myname %> is typing..',
+            typing: '<%= myname %>',
             roomid: '<%= roomid %>',
           });
         });
         $('input').blur(function() {
           socket.emit('stop typing', {
-            stoptyping: '<%= myname %> stopped typing..',
+            stoptyping: '<%= myname %>',
             roomid: '<%= roomid %>',
           });
         });

@@ -9,10 +9,10 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages li { padding: 5px 10px; }
+      #myForm { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      #myForm input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #myForm button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages li { padding: 5px 10px;  margin: 2px 0px;}
       #messages { margin-bottom: 40px }
       .mytexts{
         background-color: rgb(253, 255, 158);
@@ -66,6 +66,10 @@
         socket.on('personal message', function(msg){
           var node = document.createElement("li");
           node.innerHTML = msg.myname +': '+ msg.message ;
+          if(msg.myname != '<%= displayname %>')
+            node.classList.add('mytexts');
+          else
+            node.classList.add('friendstexts');
           document.getElementById("messages").appendChild(node)
           window.scrollTo(0, document.body.scrollHeight);
         });
@@ -79,7 +83,6 @@
             document.getElementById('typing').innerHTML = msg.typing + ' is typing..';
             document.getElementById('typing').style.display = "block";
           }
-
         })
 
         socket.emit('check online',{
@@ -93,12 +96,14 @@
           if(msg.myname != '<%= displayname %>')
           {
             document.getElementById('online').style.display = "block";
+
           }
         })
 
         socket.on('user disconnect',function(user){
           //console.log(user + ' disconnected');
           document.getElementById('online').style.display = "none";
+          document.getElementById('typing').style.display = "none";
           document.getElementById('lastseen').style.display = "block";
           var d = new Date();
           document.getElementById('lastseen').innerHTML = d;
@@ -107,12 +112,14 @@
         socket.on('online',function(user){
           console.log(user + ' is online');
           document.getElementById('online').style.display = "block";
+          document.getElementById('typing').style.display = "none";
           document.getElementById('lastseen').style.display = "none"; 
         })
 
         socket.on('last seen',function(lastseen){
           console.log('<%= displayname %> .lastseen '+ lastseen);
           document.getElementById('online').style.display = "none";
+          document.getElementById('typing').style.display = "none";
           document.getElementById('lastseen').style.display = "block";
           document.getElementById('lastseen').innerHTML = lastseen;
         });
@@ -121,11 +128,7 @@
           console.log(msg.stoptyping);
           if(msg.stoptyping == '<%= displayname %>')
           {
-            socket.emit('check online',{
-            roomid: '<%= roomid %>',
-              myname: '<%= myname %>',
-              myid: '<%= myid %>',
-            });
+            document.getElementById('online').style.display = "block";
             document.getElementById('typing').style.display = "none";
           }
         })
